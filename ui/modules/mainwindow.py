@@ -7,7 +7,7 @@ from ui.modules.button import Button
 from ui.modules.label import Label
 from scripts.geocoder import Geocoder
 from scripts.in_out_put import ImportExport
-from scripts import logging, utils
+from scripts import app_logging, utils
 import requests, json
 
 class MainWindow(QMainWindow):
@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
             parent=self
         )
 
-        logging.log_info(" > Map window initialized successfully.")
+        app_logging.log_info(" > Map window initialized successfully.")
 
         self.search_timer = QTimer()
         self.search_timer.setSingleShot(True)
@@ -169,7 +169,7 @@ class MainWindow(QMainWindow):
             self.import_button.raise_()
             self.import_button.clicked.connect(self.import_markers)
 
-        logging.log_info(" > Main window initialized successfully.")
+        app_logging.log_info(" > Main window initialized successfully.")
 
     # ==================================================
     # Search functionality
@@ -191,7 +191,7 @@ class MainWindow(QMainWindow):
     
     def move_to_search_result(self, feature):
         try:
-            logging.log_info(f"Search result selected: {feature['place_name']} (Lat: {feature['center'][1]}, Lon: {feature['center'][0]})")
+            app_logging.log_info(f"Search result selected: {feature['place_name']} (Lat: {feature['center'][1]}, Lon: {feature['center'][0]})")
             lon = feature["center"][0]
             lat = feature["center"][1]
 
@@ -204,7 +204,7 @@ class MainWindow(QMainWindow):
                 self.map.move_to(lat, lon, zoom=16)
             
         except requests.RequestException as e:
-            logging.log_error(f"Error during search: {e}")
+            app_logging.log_error(f"Error during search: {e}")
 
     # ==================================================
     # Marker Panel functionality
@@ -257,7 +257,6 @@ class MainWindow(QMainWindow):
     # ==================================================
     def save_location(self, returned_value):
         if not returned_value:
-            print("No map state returned. Skipping save.")
             return
         try:
             if self.config is not None:
@@ -266,17 +265,15 @@ class MainWindow(QMainWindow):
                 lng = dict_value["lng"]
                 zoom = dict_value["zoom"]
 
-                if "map" not in self.config:
-                    self.config["map"] = {}
-                    self.config["map"]["last_known_location"] = {
-                        "latitude": lat,
-                        "longitude": lng,
-                        "zoom": zoom
-                    }
+                self.config["map"]["last_known_location"] = {
+                    "latitude": lat,
+                    "longitude": lng,
+                    "zoom": zoom
+                }
 
             utils.save_config(self.config)
         except json.JSONDecodeError:
-            logging.log_error(f"Invalid map state: {returned_value}")
+            app_logging.log_error(f"Invalid map state: {returned_value}")
             return
     
         

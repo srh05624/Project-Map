@@ -70,41 +70,44 @@ class Button(QPushButton):
         self.disabled_background_color = disabled_background_color
         self.disabled_border_color = disabled_border_color
 
-        self.setText(text)
+        self.setText(self.button_text)
         self.resize(self.button_size)
-        self.move(*position)
+        self.move(*self.position)
 
+        self.apply_styles()
+
+    def apply_styles(self):
         self.setStyleSheet(f"""
             QPushButton {{
-                color: rgba{color};
-                background-color: rgba{background_color};
-                border-color: rgba{border_color};
-                border-radius: {border_radius}px;
-                border-width: {border_width}px;
+                color: rgba{self.color};
+                background-color: rgba{self.background_color};
+                border-color: rgba{self.border_color};
+                border-radius: {self.border_radius}px;
+                border-width: {self.border_width}px;
                 border-style: outset;
-                font-family: {font};
-                font-size: {font_size}px;
-                padding: {padding}px;
+                font-family: {self.text_font};
+                font-size: {self.text_size}px;
+                padding: {self.padding}px;
             }}
 
             QPushButton:hover {{
-                background-color: rgba{hover_color};
-                border-color: rgba{hover_border_color};
+                background-color: rgba{self.hover_color};
+                border-color: rgba{self.hover_border_color};
             }}
 
             QPushButton:pressed {{
-                background-color: rgba{pressed_color};
-                border-color: rgba{pressed_border_color};
+                background-color: rgba{self.pressed_color};
+                border-color: rgba{self.pressed_border_color};
             }}
 
             QPushButton:checked {{
-                background-color: rgba{checked_color};
-                border-color: rgba{checked_border_color};
+                background-color: rgba{self.checked_color};
+                border-color: rgba{self.checked_border_color};
             }}
 
             QPushButton:disabled {{
-                color: rgba{disabled_color};
-                background-color: rgba{disabled_background_color};
-                border-color: rgba{disabled_border_color};
+                color: rgba{self.disabled_color};
+                background-color: rgba{self.disabled_background_color};
+                border-color: rgba{self.disabled_border_color};
             }}
         """)

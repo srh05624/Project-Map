@@ -1,7 +1,7 @@
 import os, json
 
 local_path = str(os.getenv('APPDATA') or os.path.expanduser('~'))
-install_path = os.path.join(local_path, "ProjectNav")
+install_path = os.path.join(local_path, "ProjectMapping")
 log_directory = os.path.join(install_path, "logs")
 config_path = os.path.join(install_path, "config.json")
 
@@ -12,8 +12,7 @@ default_config = {
     },
     "logging": {
         "directory": log_directory,
-        "days_to_keep": 3,
-        "debug": False
+        "days_to_keep": 3
     },
     "import": {
         "directory": os.path.join(install_path, "data", "imports"),

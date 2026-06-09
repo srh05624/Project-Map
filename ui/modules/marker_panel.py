@@ -54,7 +54,6 @@ class MarkerPanel(QWidget):
             parent=None
         ):
         super().__init__(parent)
-        self.real_size = size
         self.position = position
         self.markers = markers if markers else []
 
@@ -93,7 +92,6 @@ class MarkerPanel(QWidget):
         if markers is None or markers == []:
             return
         
-        print("Populating marker panel with markers:")
         self.marker_list.clear()
         self.markers = markers
 

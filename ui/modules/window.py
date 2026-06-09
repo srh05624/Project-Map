@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QSize as Qsize
-from scripts import logging, utils
+from scripts import app_logging
 
 class Window(QWidget):
     def __init__(
@@ -20,6 +20,6 @@ class Window(QWidget):
         
         if parent:
             self.parent = parent
-            logging.log_info(f"Window '{title}' created with parent '{parent.windowTitle()}'.")
+            app_logging.log_info(f"Window '{title}' created with parent '{parent.windowTitle()}'.")
         else:
-            logging.log_warning("No parent specified for Window. This may lead to unexpected behavior.")
+            app_logging.log_warning("No parent specified for Window. This may lead to unexpected behavior.")

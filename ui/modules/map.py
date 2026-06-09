@@ -4,7 +4,7 @@ from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, QUrl, Qt
 from scripts.map_server import LocalMapServer
-from scripts import logging
+from scripts import app_logging
 import json, sys
 
 def resource_path(relative_path):
@@ -13,6 +13,9 @@ def resource_path(relative_path):
     return Path(relative_path).resolve()
 
 map_folder = resource_path("assets")
+
+app_logging.log_info("Map module loaded.")
+app_logging.log_info(f"Map assets path: {map_folder}")
 
 styles = [
     "streets-v2",
@@ -39,9 +42,9 @@ class MapBridge(QObject):
         if message == "Map loaded and ready":
             if self.load_callback:
                 self.load_callback()
-            logging.log_info("Map loaded successfully and ready for interaction.")
+            app_logging.log_info("Map loaded successfully and ready for interaction.")
         else:
-            logging.log_error(f"Map failed to load. Message from JS: {message}")
+            app_logging.log_error(f"Map failed to load. Message from JS: {message}")
 
     @Slot(str)
     def markersEdited(self, markers_json):
@@ -49,7 +52,7 @@ class MapBridge(QObject):
         
         if self.refresh:
             self.refresh(markers=markers)
-            logging.log_info(f"Markers updated from JS. Total markers: {len(markers)}")
+            app_logging.log_info(f"Markers updated from JS. Total markers: {len(markers)}")
 
 class MapWindow(QWebEngineView):
     def __init__(
@@ -103,12 +106,8 @@ class MapWindow(QWebEngineView):
     # ==================================================
     def run_js(self, script, callback=None):
         if callback is None:
-            callback = self.print_fallback
-        
+            callback = print 
         self.page().runJavaScript(script, callback)
-
-    def print_fallback(self, result):
-        print(f"JS Result: {result}")
 
     def handle_permission_request(self, security_origin, feature):
         try:
@@ -119,13 +118,13 @@ class MapWindow(QWebEngineView):
                     QWebEnginePage.PermissionPolicy.PermissionGrantedByUser
                 )
         except Exception as e:
-            logging.log_error(f"Error handling permission request: {e}")
+            app_logging.log_error(f"Error handling permission request: {e}")
 
     def load_style(self):
         style_url = f"https://api.maptiler.com/maps/{self.map_style}/style.json?key={self.api_key}"
 
         if self.map_style is not None:
-            logging.log_info(f"Loading map style: {self.map_style}")
+            app_logging.log_info(f"Loading map style: {self.map_style}")
             self.run_js(f"setMapStyle('{style_url}');")
 
     def map_setup(self):
@@ -133,7 +132,7 @@ class MapWindow(QWebEngineView):
             self.load_style()
 
             if self.config:
-                logging.log_info("Loading map details from configuration...")
+                app_logging.log_info("Loading map details from configuration...")
                 last_known_location = self.config.get("map", {}).get("last_known_location", None)
                 default_location = self.config["map"]["default_location"]
 
@@ -143,10 +142,10 @@ class MapWindow(QWebEngineView):
                     self.move_to(default_location["latitude"], default_location["longitude"], default_location["zoom"])
 
          except Exception as e:
-            logging.log_warning(f"Error loading map details: {e}")
+            app_logging.log_warning(f"Error loading map details: {e}")
 
     def load_markers(self, markers):
-        logging.log_info(f"Loading {len(markers)} markers onto the map...")
+        app_logging.log_info(f"Loading {len(markers)} markers onto the map...")
 
         for marker in markers:
             try:
@@ -156,7 +155,7 @@ class MapWindow(QWebEngineView):
                 lng, lat = coordinates[0], coordinates[1]
                 self.add_marker(name, lat, lng, color=color)
             except Exception as e:
-                logging.log_warning(f"Error loading marker '{marker}': {e}")
+                app_logging.log_warning(f"Error loading marker '{marker}': {e}")
 
     # ==================================================
     # Marker functions

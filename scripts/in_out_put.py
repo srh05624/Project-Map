@@ -1,5 +1,5 @@
 import csv, os
-from scripts import logging
+from scripts import app_logging
 from ui.requests import RequestManager
 
 class ImportExport():
@@ -12,7 +12,7 @@ class ImportExport():
     # ===============================================================
     def export_markers_to_csv(self):
         if self.map is None:
-            logging.log_warning("Map not set up. Cannot export markers.")
+            app_logging.log_warning("Map not set up. Cannot export markers.")
             return
         
         try:
@@ -21,7 +21,7 @@ class ImportExport():
             folder = request_manager.request_file(filter="CSV Files (*.csv)")
 
             if folder is None:
-                logging.log_info("No folder selected. Export cancelled.")
+                app_logging.log_info("No folder selected. Export cancelled.")
                 return
             
             file_path = os.path.join(folder, "markers.csv")
@@ -41,15 +41,15 @@ class ImportExport():
                         'lon': geometry.get('coordinates', [0, 0])[0]
                     })
         except Exception as e:
-            logging.log_error(f"Error exporting markers to CSV: {e}")
-            logging.log_error(f"Error exporting markers to CSV: {e}")
+            app_logging.log_error(f"Error exporting markers to CSV: {e}")
+            app_logging.log_error(f"Error exporting markers to CSV: {e}")
 
     def import_markers_from_csv(self, file_path = None):
         if file_path is None:
             request_manager = RequestManager("Select a file to import markers from")
             file_path = request_manager.request_file(filter="CSV Files (*.csv)")
             if file_path is None:
-                logging.log_info("No file selected. Import cancelled.")
+                app_logging.log_info("No file selected. Import cancelled.")
                 return None
 
         try:
@@ -72,6 +72,6 @@ class ImportExport():
                 
                 return markers
         except Exception as e:
-            logging.log_error(f"Error importing markers: {e}")
-            logging.log_error(f"Error importing markers: {e}")
+            app_logging.log_error(f"Error importing markers: {e}")
+            app_logging.log_error(f"Error importing markers: {e}")
             return None

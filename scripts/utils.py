@@ -1,12 +1,12 @@
 import os, json
-from scripts import installer, logging
+from scripts import app_logging, installer
 from datetime import datetime
 
 # ===============================================================
 # Utility functions
 # ===============================================================
 def exit(code=0):
-    logging.log_info(f"Exiting application with code {code}.")
+    app_logging.log_info(f"Exiting application with code {code}.")
     os._exit(code)
 
 # ===============================================================
@@ -15,23 +15,23 @@ def exit(code=0):
 def load_config(config_path=installer.config_path):
     try:
         if not os.path.exists(config_path):
-            logging.log_warning(f"Config file {config_path} not found. Using default configuration.")
+            app_logging.log_warning(f"Config file {config_path} not found. Using default configuration.")
             return installer.default_config
         
         with open(config_path, 'r') as f:
             config = json.load(f)
             return {**installer.default_config, **config}
     except Exception as e:
-        logging.log_error(f"Error loading config: {e}")
+        app_logging.log_error(f"Error loading config: {e}")
         return installer.default_config
     
 def save_config(config, config_path=installer.config_path):
     try:
-        logging.log_info(f"Saving config to {config_path}...")
+        app_logging.log_info(f"Saving config to {config_path}...")
         with open(config_path, 'w') as f:
             json.dump(config, f, indent=4)
     except Exception as e:
-        logging.log_error(f"Error saving config: {e}")
+        app_logging.log_error(f"Error saving config: {e}")
 
 # ===============================================================
 # Time and date functions
@@ -50,7 +50,7 @@ def format_datetime(date=current_date(), time=current_time()):
         dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M:%S")
         return dt.strftime("%m-%d-%Y %I:%M:%S %p")
     except Exception as e:
-        logging.log_error(f"Error formatting datetime: {e}")
+        app_logging.log_error(f"Error formatting datetime: {e}")
         return "unknown_datetime"
 
 def formated_time():
@@ -64,7 +64,7 @@ def formated_time():
         
         return time_final
     except Exception as e:
-        logging.log_error(f"Error formatting time: {e}")
+        app_logging.log_error(f"Error formatting time: {e}")
         return "unknown_time"
     
 # ===============================================================
@@ -74,5 +74,5 @@ def file_modification_time(file_path):
     try:
         return datetime.fromtimestamp(os.path.getmtime(file_path))
     except Exception as e:
-        logging.log_error(f"Error getting file modification time: {e}")
+        app_logging.log_error(f"Error getting file modification time: {e}")
         return datetime.min

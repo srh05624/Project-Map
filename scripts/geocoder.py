@@ -1,8 +1,7 @@
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtNetwork import (
     QNetworkAccessManager,
-    QNetworkRequest,
-    QNetworkReply
+    QNetworkRequest
 )
 from PySide6.QtCore import QUrl
 import json

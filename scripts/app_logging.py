@@ -4,26 +4,22 @@ from scripts import utils
 # ===============================================================
 # Logging functions
 # ===============================================================
-def setup_logging(log_dir, debug=False):
+def setup_logging(log_dir):
     try:
         if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        log_file = os.path.join(log_dir, f"ServiceManager_{utils.formated_time()}.log")
+            os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, f"ProjectMapping_{utils.formated_time()}.log")
         
         logging.basicConfig(
             filename=log_file,
-            level=logging.DEBUG if debug else logging.INFO,
+            level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
 
         log_info("Logging setup complete.")
         return True
     except Exception as e:
-        print(f"Error setting up logging: {e}")
         return False
-
-def log_debug(message):
-    logging.debug(message)
 
 def log_info(message):
     logging.info(message)
