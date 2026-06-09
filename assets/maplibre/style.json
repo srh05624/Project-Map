@@ -1,0 +1,10 @@
+{
+  "version": 8,
+  "sources": {
+    "local": {
+      "type": "vector",
+      "url": "pmtiles://http://127.0.0.1:8765/pmtiles/mobile-alabama.pmtiles"
+    }
+  },
+  "layers": []
+}

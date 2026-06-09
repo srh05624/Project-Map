@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Map</title>
+    
+    <script src="/maplibre/maplibre-gl.js"></script>
+    <link rel="stylesheet" href="/maplibre/maplibre-gl.css">
+    <script src="/pmtiles/pmtiles.js"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script>
+        console.log("MapLibre:", window.maplibregl);
+    </script>
+
+    <script>
+        /*==================================================
+                          Utility functions
+        ==================================================*/
+        function isReady() {
+            if (!mapReady) {
+                console.warn("Map is not ready yet.");
+                return false;
+            }
+            return true;
+        }
+        
+        function getFirstSymbolLayerId() {
+            const layers = map.getStyle().layers;
+
+            for (const layer of layers) {
+                if (layer.type === "symbol") {
+                    return layer.id;
+                }
+            }
+
+            return undefined;
+        }
+
+        
+        function setMapStyle(styleUrl) {
+            try {
+                map.setStyle(styleUrl);
+            }
+            catch (err) {
+                console.error("Error setting map style:", err);
+            }
+        }
+
+        /*==================================================
+                           Return functions
+        ==================================================*/
+        function callMarkers() {
+            try {
+                if (pyBridge) {
+                    pyBridge.markersEdited(JSON.stringify(markersData));
+                }
+            }
+            catch (err) {
+                console.error("Error querying marker features:", err);
+            }
+        }
+
+        function isLoaded() {
+            try {
+                if (pyBridge && isReady()) {
+                    pyBridge.loadCompleted("Map loaded and ready");
+                }
+            }
+            catch (err) {
+                console.error("Error checking if map is loaded:", err);
+                return "Error: " + err;
+            }
+        }
+
+        /*==================================================
+                           Layer functions
+        ==================================================*/
+        function setupCustomLayers() {
+            try {
+                if (!map.getSource("markers")) {
+                    map.addSource("markers", {
+                        type: "geojson",
+                        data: markersData
+                    });
+                }
+
+                if (!map.getSource("search")) {
+                    map.addSource("search", {
+                        type: "geojson",
+                        data: {
+                            type: "FeatureCollection",
+                            features: []
+                        }
+                    });
+                }
+
+                if (!map.getSource("route")) {
+                    map.addSource("route", {
+                        type: "geojson",
+                        data: {
+                            type: "FeatureCollection",
+                            features: []
+                        }
+                    });
+                }
+
+            }
+            catch (err) {
+                console.error("Error adding Sources:", err);
+                return;
+            }
+            
+            try {
+                if (!map.getLayer("search")) {
+                    const labelLayerId = getFirstSymbolLayerId();
+
+                    map.addLayer({
+                        id: "search",
+                        type: "circle",
+                        source: "search",
+                        paint: {
+                            "circle-radius": 8,
+                            "circle-color": ["coalesce", ["get", "color"], "#6666ff"],
+                            "circle-stroke-width": 2,
+                            "circle-stroke-color": "#ffffff"
+                        }
+                    }, labelLayerId);
+                }
+
+                if (!map.getLayer("markers")) {
+                    const labelLayerId = getFirstSymbolLayerId();
+
+                    map.addLayer({
+                        id: "markers",
+                        type: "circle",
+                        source: "markers",
+                        paint: {
+                            "circle-radius": 8,
+                            "circle-color": ["coalesce", ["get", "color"], "#ff0000"],
+                            "circle-stroke-width": 2,
+                            "circle-stroke-color": "#ffffff"
+                        }
+                    }, labelLayerId);
+                }
+
+                if (!map.getLayer("route")) {
+                    map.addLayer({
+                        id: "route",
+                        type: "line",
+                        source: "route",
+                        layout: {
+                            "line-join": "round",
+                            "line-cap": "round"
+                        },
+                        paint: {
+                            "line-color": "#00ff00",
+                            "line-width": 4
+                        }
+                    });
+                }
+
+                mapReady = true;
+                setupClickHandlers();
+                renderMarkers();
+            }
+            catch (err) {
+                console.error("Error adding Layers:", err);
+            }
+        }
+        let clickHandlersReady = false;
+
+        function setupClickHandlers() {
+            if (clickHandlersReady) return;
+
+            console.log("Setting up click handlers");
+
+            clickHandlersReady = true;
+
+            map.on("dblclick", (e) => {
+                addMarker(`marker-${Date.now()}`, e.lngLat.lat, e.lngLat.lng);
+            });
+
+            map.on("click", "markers", (e) => {
+                cycleMarkerColor(e.features[0].properties.id);
+            });
+
+            map.on("contextmenu", "markers", (e) => {
+                removeMarker(e.features[0].properties.id);
+            });
+
+            map.on("mouseenter", "markers", () => {
+                map.getCanvas().style.cursor = "pointer";
+            });
+
+            map.on("mouseleave", "markers", () => {
+                map.getCanvas().style.cursor = "";
+            });
+        }
+
+        /*==================================================
+                          Marker functions
+        ==================================================*/
+        function renderMarkers() {
+            try {
+                if (!mapReady || !map.getSource("markers")) {
+                    console.warn("Style/map not ready. Marker render skipped.");
+                    return;
+                }
+
+                map.getSource("markers").setData(markersData);
+                callMarkers();
+            }
+            catch (err) {
+                console.error("Error rendering markers:", err);
+            }
+        }
+
+        function setMarkers(geojson) {
+            try {
+                markersData = geojson;
+                renderMarkers();
+            }
+            catch (err) {
+                console.error("Error setting markers:", err);
+            }
+        }
+
+        function getMarkers() {
+            return JSON.stringify(markersData);
+        }
+
+        function updateMarker(id, lat = null, lng = null, color = null) {
+            try {
+                if (!mapReady || !map.getSource("markers")) {
+                    console.warn("Map is not ready yet. Cannot update marker.");
+                    return;
+                }
+
+                const currentData = markersData;;
+
+                const featureIndex = currentData.features.findIndex(f => f.properties.id === id);
+                if (featureIndex === -1) {
+                    console.warn("Marker with this ID does not exist.");
+                    return;
+                }
+
+                if (lat === null) lat = currentData.features[featureIndex].geometry.coordinates[1];
+                if (lng === null) lng = currentData.features[featureIndex].geometry.coordinates[0];
+                if (color === null) color = currentData.features[featureIndex].properties.color;
+
+                currentData.features[featureIndex] = {
+                    type: "Feature",
+                    properties: {
+                        id: id,
+                        color: color
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [lng, lat]
+                    }
+                };
+
+                renderMarkers();
+            }
+            catch (err) {
+                console.error("Error updating marker:", err);
+            }
+        }
+
+        const marker_colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"];
+
+        function cycleMarkerColor(id) {
+            try {
+                const feature = markersData.features.find(f => f.properties.id === id);
+                if (!feature) {
+                    console.warn("Marker with this ID does not exist.");
+                    return;
+                }
+
+                const currentColor = feature.properties.color || "#ff0000";
+                const currentIndex = marker_colors.indexOf(currentColor);
+                const nextColor = marker_colors[(currentIndex + 1) % marker_colors.length];
+
+                updateMarker(id, null, null, nextColor);
+            }
+            catch (err) {
+                console.error("Error cycling marker color:", err);
+            }
+        }
+
+        function addMarker(id, lat, lng, color = "#ff0000") {
+            try {
+                console.log("Adding marker:", id, lat, lng, color);
+
+                if (markersData.features.find(f => f.properties.id === id)) {
+                    console.warn("Marker already exists:", id);
+                    return;
+                }
+
+                markersData.features.push({
+                    type: "Feature",
+                    properties: {
+                        id: id,
+                        color: color
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [Number(lng), Number(lat)]
+                    }
+                });
+
+                console.log("Marker count:", markersData.features.length);
+
+                renderMarkers();
+            }
+            catch (err) {
+                console.error("Error adding marker:", err);
+            }
+        }
+
+        function removeMarker(id) {
+            try {
+                markersData.features = markersData.features.filter(
+                    feature => feature.properties.id !== id
+                );
+
+                if (mapReady && map.getSource("markers")) {
+                    map.getSource("markers").setData(markersData);
+                }
+
+                renderMarkers();
+            }
+            catch (err) {
+                console.error("Error removing marker:", err);
+            }
+        }
+
+        
+        function clearMarkers() {
+            try {
+                if (mapReady && map.getSource("markers")) {
+                    map.getSource("markers").setData({
+                        type: "FeatureCollection",
+                        features: []
+                    });
+
+                    markersData.features = [];
+                    callMarkers();
+                }
+            }
+            catch (err) {
+                console.error("Error clearing markers:", err);
+            }
+        }
+
+        function getMarker(id) {
+            try {
+                const feature = markersData.features.find(f => f.properties.id === id);
+                return feature ? JSON.stringify(feature) : null;
+            }
+            catch (err) {
+                console.error("Error getting marker:", err);
+                return null;
+            }
+        }
+
+        /*==================================================
+                            Map functions
+        ==================================================*/
+        function getMapState() {
+            try {
+                const center = map.getCenter();
+
+                return JSON.stringify({
+                    lat: center.lat,
+                    lng: center.lng,
+                    zoom: map.getZoom()
+                });
+            }
+            catch (err) {
+                console.error("Error getting map state:", err);
+            }
+        }
+
+        function jumpTo(lat, lng) {
+            try {
+                if (isReady()) {
+                    map.setCenter([lng, lat]);
+                }
+            }
+            catch (err) {
+                console.error("Error jumping to location:", err);
+            }
+        }
+
+        function easeTo(lat, lng, zoom = null) {
+            try {
+                if (isReady()) {
+                    const options = {
+                        center: [lng, lat],
+                        essential: true
+                    };
+                    if (zoom !== null) options.zoom = zoom;
+
+                    map.easeTo(options);
+                }
+            }
+            catch (err) {
+                console.error("Error moving to location:", err);
+            }
+        }
+
+        function setSearch(lat, lng) {
+            try {
+                if (isReady()) {
+                    const searchSource = map.getSource("search");
+                if (!searchSource) {
+                    console.error("Search source not found!");
+                    return;
+                }
+                
+                const searchGeoJSON = {
+                    type: "FeatureCollection",
+                    features: [
+                        {
+                            type: "Feature",
+                            properties: {
+                                id: "Search"
+                            },
+                            geometry: {
+                                type: "Point",
+                                coordinates: [
+                                    lng,
+                                    lat
+                                ]
+                            }
+                        }
+                    ]
+                };
+
+                searchSource.setData(searchGeoJSON);
+                }
+            }
+            catch (err) {
+                console.error("Error setting search location:", err);
+            }
+        }
+
+        /*==================================================
+                         Map initialization
+        ==================================================*/
+        window.map = new maplibregl.Map({
+            container: "map",
+            style: "https://demotiles.maplibre.org/style.json",
+            center: [-88.1380, 30.7285],
+            zoom: 10,
+            maxZoom: 20,
+        });
+
+        map.doubleClickZoom.disable();
+
+        const map_control = new maplibregl.NavigationControl();
+        const geolocate_control = new maplibregl.GeolocateControl({
+            positionOptions: {
+                enableHighAccuracy: true
+            },
+            trackUserLocation: true,
+            showUserHeading: true,
+            showAccuracyCircle: false,
+        });
+
+        map.addControl(map_control, 'top-right');
+        map.addControl(geolocate_control, 'top-right');
+
+        let mapReady = false;
+        let pendingMarkers = null;
+
+        let markersData = {
+            type: "FeatureCollection",
+            features: []
+        };
+
+        let pyBridge = null;
+
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            pyBridge = channel.objects.pyBridge;
+            console.log("Python bridge connected");
+        });
+
+        map.once("idle", () => {
+            setupCustomLayers();
+        });
+
+        map.on("error", (e) => {
+            console.error("Map error:", e.error || e);
+        });
+
+        map.on("style.load", () => {
+            setupCustomLayers();
+        });
+
+        map.on("load", () => {
+            try {
+                const labelLayerId = getFirstSymbolLayerId();
+
+                setupCustomLayers();
+                mapReady = true;
+                isLoaded();
+            } catch (err) {
+                console.error("Error triggering geolocation:", err);
+            }
+        });
+
+        document.addEventListener("click", (e) => {
+            console.log("DOCUMENT CLICK:", e.clientX, e.clientY);
+        });
+
+        map.getCanvas().addEventListener("click", (e) => {
+            console.log("CANVAS CLICK:", e.clientX, e.clientY);
+        });
+    </script>
+</body>
+</html>
