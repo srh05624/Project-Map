@@ -24,7 +24,6 @@ class ImportExport():
                 app_logging.log_info("No folder selected. Export cancelled.")
                 return
             
-            file_path = os.path.join(folder, "markers.csv")
             with open(file_path, 'w', newline='') as csvfile:
                 fieldnames = ['id', 'color', 'type', 'lat', 'lon']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
