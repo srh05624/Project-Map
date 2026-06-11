@@ -17,14 +17,13 @@ class ImportExport():
         
         try:
             markers = self.map.marker_list
-            request_manager = RequestManager("Select a folder to save the markers")
-            folder = request_manager.request_file(filter="CSV Files (*.csv)")
+            request_manager = RequestManager("Select a file to save the markers")
+            file_path = request_manager.request_file(filter="CSV Files (*.csv)")
 
-            if folder is None:
-                app_logging.log_info("No folder selected. Export cancelled.")
+            if file_path is None:
+                app_logging.log_info("No file selected. Export cancelled.")
                 return
             
-            file_path = os.path.join(folder, "markers.csv")
             with open(file_path, 'w', newline='') as csvfile:
                 fieldnames = ['id', 'color', 'type', 'lat', 'lon']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
