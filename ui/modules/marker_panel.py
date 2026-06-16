@@ -1,7 +1,6 @@
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem
 from PySide6.QtCore import Qt
 from ui.modules.marker_item import MarkerItem
-from ui.modules.button import Button
 
 class MarkerList(QListWidget):
     def __init__(self,
@@ -51,9 +50,11 @@ class MarkerPanel(QWidget):
             border_color=(0,0,0,255),
             border_width=1,
             position=(0,0),
+            map=None,
             parent=None
         ):
         super().__init__(parent)
+        self.map = map
         self.position = position
         self.markers = markers if markers else []
 
@@ -97,7 +98,7 @@ class MarkerPanel(QWidget):
 
         for marker in self.markers:
             item = QListWidgetItem(self.marker_list)
-            row = MarkerItem(marker, parent=self.marker_list)
+            row = MarkerItem(marker, map = self.map, parent=self.marker_list)
             
             item.setSizeHint(row.sizeHint())
             self.marker_list.setItemWidget(item, row)

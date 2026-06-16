@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QSize
-from ui.modules.label import Label
+from ui.modules.lineedit import LineEdit
 from ui.modules.image import Image
 from ui.engine import Engine
 import json
@@ -8,6 +8,7 @@ import json
 class MarkerItem(QWidget):
     def __init__(self,
             marker_data,
+            map = None,
             size=(200, 30),
             parent=None
         ):
@@ -17,6 +18,8 @@ class MarkerItem(QWidget):
         self.size_hint = size
         self.long = self.marker_data.get("geometry", {}).get("coordinates", [0, 0])[0]
         self.lat = self.marker_data.get("geometry", {}).get("coordinates", [0, 0])[1]
+
+        self.map = map
 
         TEXT_COLOR = (0, 0, 0, 255)
         TRANSPARENT = (0, 0, 0, 0)
@@ -34,14 +37,18 @@ class MarkerItem(QWidget):
             parent=self
         )
 
-        self.label = Label(
+        self.label = LineEdit(
             text=self.id,
+            placeholder_text="Enter marker name",
             color=TEXT_COLOR,
             background_color=TRANSPARENT,
             font_size=16,
             parent=self
         )
-        self.label.setGeometry(35, 10, self.size_hint[0] - 10, self.size_hint[1] - 10)
+
+        if self.label:
+            self.label.setGeometry(35, 10, self.size_hint[0] - 10, self.size_hint[1] - 10)
+            self.label.returnPressed.connect(self.update_marker)
 
     def hex_to_rgba(self, hex_color):
         hex_color = hex_color.lstrip('#')
@@ -49,3 +56,7 @@ class MarkerItem(QWidget):
 
     def sizeHint(self):
         return QSize(self.size_hint[0], self.size_hint[1] + 10)
+    
+    def update_marker(self):
+        if self.map:
+            self.map.run_js(f'changeMarkerId("{self.id}", "{self.label.text()}")')

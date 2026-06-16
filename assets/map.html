@@ -287,6 +287,21 @@
             }
         }
 
+        function changeMarkerId(id, name) {
+            try {
+                const feature = markersData.features.find(f => f.properties.id === id);
+                if (!feature) {
+                    console.warn("Marker with this ID does not exist.");
+                    return;
+                }
+                feature.properties.id = name;
+                renderMarkers();
+            }
+            catch (err) {
+                console.error("Error changing marker ID:", err);
+            }
+        }
+
         const marker_colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"];
 
         function cycleMarkerColor(id) {

@@ -10,20 +10,31 @@ import json
 class Geocoder(QObject):
     search_finished = Signal(list)
 
-    def __init__(self, api_key):
+    def __init__(self, maptiler_api, google_api):
         super().__init__()
 
-        self.api_key = api_key
+        self.maptiler_api_key = maptiler_api
+        self.google_api_key = google_api
         self.network = QNetworkAccessManager()
+        self.provider = "maptiler"
 
     def search(self, query):
-        url = (
-            f"https://api.maptiler.com/geocoding/"
-            f"{query}.json"
-            f"?autocomplete=true"
-            f"&limit=5"
-            f"&key={self.api_key}"
-        )
+        url = ""
+
+        if self.provider == "google":
+            url = (
+                f"https://maps.googleapis.com/maps/api/geocode/json"
+                f"?address={query}"
+                f"&key={self.google_api_key}"
+            )
+        else:
+            url = (
+                f"https://api.maptiler.com/geocoding/"
+                f"{query}.json"
+                f"?autocomplete=true"
+                f"&limit=5"
+                f"&key={self.maptiler_api_key}"
+            )
 
         request = QNetworkRequest(QUrl(url))
 
@@ -36,9 +47,14 @@ class Geocoder(QObject):
         data = json.loads(
             bytes(reply.readAll()).decode()
         )
-
+        
+        if self.provider == "google":
+            results = data.get("results", [])
+        else:
+            results = data.get("features", [])
+        
         self.search_finished.emit(
-            data.get("features", [])
+            results
         )
 
         reply.deleteLater()

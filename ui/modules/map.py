@@ -60,7 +60,8 @@ class MapWindow(QWebEngineView):
             html_path: Path = map_folder,
             title : str = "Map",
             style: str | None = styles[0],
-            api_key: str | None = None,
+            maptiler_api_key: str | None = None,
+            google_api_key: str | None = None,
             display_list = None,
             config: dict | None = None,
             parent = None
@@ -70,7 +71,8 @@ class MapWindow(QWebEngineView):
         self.marker_list = []
         self.display_list = display_list if display_list else None
         self.map_style = style
-        self.api_key = api_key
+        self.maptiler_api_key = maptiler_api_key
+        self.google_api_key = google_api_key
         self.config = config
 
         self.channel = QWebChannel()
@@ -121,7 +123,7 @@ class MapWindow(QWebEngineView):
             app_logging.log_error(f"Error handling permission request: {e}")
 
     def load_style(self):
-        style_url = f"https://api.maptiler.com/maps/{self.map_style}/style.json?key={self.api_key}"
+        style_url = f"https://api.maptiler.com/maps/{self.map_style}/style.json?key={self.maptiler_api_key}"
 
         if self.map_style is not None:
             app_logging.log_info(f"Loading map style: {self.map_style}")

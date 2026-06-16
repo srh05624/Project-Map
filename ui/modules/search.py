@@ -44,24 +44,30 @@ class SearchBar(QLineEdit):
         self.confirm = confirm
 
     def refresh_items(self, new_items):
-        self.clear_items()
+        try:
+            self.clear_items()
 
-        for i, feature in enumerate(new_items):
-            name = feature["place_name"]
-                                                                                                     
-            new_item = Button(
-                text=name,
-                size=(self.width(), 25),
-                position=(self.position[0], self.position[1] + self.height() + i*25),
-                padding=0,
-                parent=self.parent()
-            )
-            
-            if new_item:
-                self.items.append(new_item)
-                if self.confirm:
-                    new_item.clicked.connect(lambda confirm, feature=feature: self.confirm(feature))
-                new_item.show()
+            for i, feature in enumerate(new_items):
+                if "place_name" in feature:
+                    name = feature["place_name"]
+                else:
+                    name = feature["formatted_address"]
+                                                                                                        
+                new_item = Button(
+                    text=name,
+                    size=(self.width(), 25),
+                    position=(self.position[0], self.position[1] + self.height() + i*25),
+                    padding=0,
+                    parent=self.parent()
+                )
+                
+                if new_item:
+                    self.items.append(new_item)
+                    if self.confirm:
+                        new_item.clicked.connect(lambda confirm, feature=feature: self.confirm(feature))
+                    new_item.show()
+        except Exception as e:
+            print(f"Error refreshing items: {e}")
 
     def clear_items(self):
         for item in self.items:

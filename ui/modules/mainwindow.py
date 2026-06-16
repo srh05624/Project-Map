@@ -30,12 +30,15 @@ class MainWindow(QMainWindow):
         self.showMaximized()
 
         self.config = config
-        self.api_key = config["map"]["api_key"] if config else None
-        self.geocoder = Geocoder(self.api_key)
+        self.maptiler_api_key = config["map"]["maptiler_api_key"] if config else None
+        self.google_api_key = config["map"]["google_api_key"] if config else None
+        self.provider = "maptiler"
+        self.geocoder = Geocoder(self.maptiler_api_key, self.google_api_key)
         self.map = MapWindow(
             title="Map",
             style=config["map"]["style"] if config else None,
-            api_key=self.api_key,
+            maptiler_api_key=self.maptiler_api_key,
+            google_api_key=self.google_api_key,
             config=self.config,
             parent=self
         )
@@ -67,7 +70,7 @@ class MainWindow(QMainWindow):
 
         if self.search_bar:
             self.search_bar.raise_()
-            self.search_bar.textChanged.connect(self.schedule_search)
+            self.search_bar.returnPressed.connect(self.schedule_search)
 
         self.geocoder.search_finished.connect(
             self.populate_results
@@ -86,6 +89,7 @@ class MainWindow(QMainWindow):
             background_color=TRANSPARENT,
             border_color=TRANSPARENT,
             border_width=1,
+            map = self.map,
             parent=self.centralWidget()
         )
         if self.marker_panel:
@@ -169,6 +173,54 @@ class MainWindow(QMainWindow):
             self.import_button.raise_()
             self.import_button.clicked.connect(self.import_markers)
 
+        # ==================================================
+        # API Switching
+        # ==================================================
+        self.maptiler_button = Button(
+            text="MapTiler",
+            size=(60, 30),
+            position=(430, 10),
+            color=(0, 0, 0, 255),
+            border_color=(200, 200, 200, 100),
+            border_width=1,
+            background_color=(255, 255, 255, 220),
+            hover_color=(200, 200, 200, 255),
+            hover_border_color=(200, 200, 200, 255),
+            pressed_color=(160, 160, 160, 255),
+            pressed_border_color=(200, 200, 200, 255),
+            font="Arial",
+            font_size=14,
+            padding = 1,
+            parent=self.centralWidget()
+        )
+        if self.maptiler_button:
+            self.maptiler_button.show()
+            self.maptiler_button.raise_()
+            self.maptiler_button.clicked.connect(self.switch_to_maptiler)
+
+        self.google_button = Button(
+            text="Google",
+            size=(60, 30),
+            position=(500, 10),
+            color=(0, 0, 0, 255),
+            border_color=(200, 200, 200, 100),
+            border_width=1,
+            background_color=(150, 150, 150, 220),
+            hover_color=(200, 200, 200, 255),
+            hover_border_color=(200, 200, 200, 255),
+            pressed_color=(160, 160, 160, 255),
+            pressed_border_color=(200, 200, 200, 255),
+            font="Arial",
+            font_size=14,
+            padding = 1,
+            parent=self.centralWidget()
+        )
+        if self.google_button:
+            if self.google_api_key != "":
+                self.google_button.show() 
+                self.google_button.raise_()
+                self.google_button.clicked.connect(self.switch_to_google)
+
         app_logging.log_info(" > Main window initialized successfully.")
 
     # ==================================================
@@ -191,9 +243,15 @@ class MainWindow(QMainWindow):
     
     def move_to_search_result(self, feature):
         try:
-            app_logging.log_info(f"Search result selected: {feature['place_name']} (Lat: {feature['center'][1]}, Lon: {feature['center'][0]})")
-            lon = feature["center"][0]
-            lat = feature["center"][1]
+            if "place_name" in feature:
+                app_logging.log_info(f"Search result selected: {feature['place_name']} (Lat: {feature['center'][1]}, Lon: {feature['center'][0]})")
+                center = feature.get("center", [0, 0])
+                lon = center[0]
+                lat = center[1]
+            else:
+                app_logging.log_info(f"Search result selected: {feature['formatted_address']} (Lat: {feature['geometry']['location']['lat']}, Lon: {feature['geometry']['location']['lng']})")
+                lon = feature["geometry"]["location"]["lng"]
+                lat = feature["geometry"]["location"]["lat"]
 
             self.search_marker = (lat, lon)
 
@@ -205,6 +263,28 @@ class MainWindow(QMainWindow):
             
         except requests.RequestException as e:
             app_logging.log_error(f"Error during search: {e}")
+
+    def switch_to_google(self):
+        if self.geocoder:
+            self.geocoder.provider = "google"
+            self.provider = "google"
+            if self.google_button:
+                self.google_button.background_color = (255, 255, 255, 220)
+                self.google_button.apply_styles()
+            if self.maptiler_button:
+                self.maptiler_button.background_color = (150, 150, 150, 220)
+                self.maptiler_button.apply_styles()
+
+    def switch_to_maptiler(self):
+        if self.geocoder:
+            self.geocoder.provider = "maptiler"
+            self.provider = "maptiler"
+            if self.google_button:
+                self.google_button.background_color = (150, 150, 150, 220)
+                self.google_button.apply_styles()
+            if self.maptiler_button:
+                self.maptiler_button.background_color = (255, 255, 255, 220)
+                self.maptiler_button.apply_styles()
 
     # ==================================================
     # Marker Panel functionality
